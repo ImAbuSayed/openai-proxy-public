@@ -107,8 +107,6 @@ openai, api-proxy, laravel, filament, text-to-speech, speech-to-text, chat-compl
 
 ## 🔗 Links
 
-- [Documentation](https://your-domain.com/admin/documentation)
-- [Issue Tracker](https://github.com/yourusername/openai-region-bypass-proxy/issues)
 - [Laravel](https://laravel.com)
 - [Filament](https://filamentphp.com)
 - [OpenAI API](https://platform.openai.com/docs/api-reference)
