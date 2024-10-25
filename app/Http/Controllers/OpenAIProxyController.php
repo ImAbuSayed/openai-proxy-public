@@ -7,7 +7,6 @@ use App\Models\ApiKey;
 use OpenAI;
 use Illuminate\Support\Facades\Storage;
 
-
 class OpenAIProxyController extends Controller
 {
     private function validateApiKey($request)
@@ -37,54 +36,54 @@ class OpenAIProxyController extends Controller
     }
 
     public function proxySpeech(Request $request)
-{
-    try {
-        $client = $this->validateApiKey($request);
+    {
+        try {
+            $client = $this->validateApiKey($request);
 
-        // Validate required parameters
-        $request->validate([
-            'input' => 'required|string',
-            'model' => 'required|string',
-            'voice' => 'required|string',
-        ]);
+            // Validate required parameters
+            $request->validate([
+                'input' => 'required|string',
+                'model' => 'required|string',
+                'voice' => 'required|string',
+            ]);
 
-        \Log::info('Received TTS request', [
-            'input' => $request->input('input'),
-            'model' => $request->input('model'),
-            'voice' => $request->input('voice'),
-        ]);
+            \Log::info('Received TTS request', [
+                'input' => $request->input('input'),
+                'model' => $request->input('model'),
+                'voice' => $request->input('voice'),
+            ]);
 
-        // Generate speech
-        $response = $client->audio()->speech([
-            'model' => $request->input('model', 'tts-1-hd'),
-            'input' => $request->input('input'),
-            'voice' => $request->input('voice'),
-            'response_format' => 'mp3',
-        ]);
+            // Generate speech
+            $response = $client->audio()->speech([
+                'model' => $request->input('model', 'tts-1-hd'),
+                'input' => $request->input('input'),
+                'voice' => $request->input('voice'),
+                'response_format' => 'mp3',
+            ]);
 
-        // Check if the response is a string (audio content)
-        if (is_string($response)) {
-            $audioContent = $response;
-        } else {
-            // Get the audio content
-            $audioContent = $response->getContent();
+            // Check if the response is a string (audio content)
+            if (is_string($response)) {
+                $audioContent = $response;
+            } else {
+                // Get the audio content
+                $audioContent = $response->getContent();
+            }
+
+            \Log::info('Generated TTS audio', [
+                'audioContentLength' => strlen($audioContent),
+            ]);
+
+            // Return audio file with proper headers
+            return response($audioContent)
+                ->header('Content-Type', 'audio/mpeg')
+                ->header('Content-Length', strlen($audioContent));
+        } catch (\Exception $e) {
+            \Log::error('Error generating TTS audio', [
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => $e->getMessage()], $e->getCode() ?: 500);
         }
-
-        \Log::info('Generated TTS audio', [
-            'audioContentLength' => strlen($audioContent),
-        ]);
-
-        // Return audio file with proper headers
-        return response($audioContent)
-            ->header('Content-Type', 'audio/mpeg')
-            ->header('Content-Length', strlen($audioContent));
-    } catch (\Exception $e) {
-        \Log::error('Error generating TTS audio', [
-            'error' => $e->getMessage(),
-        ]);
-        return response()->json(['error' => $e->getMessage()], $e->getCode() ?: 500);
     }
-}
 
     public function proxyTranscription(Request $request)
     {
@@ -98,12 +97,20 @@ class OpenAIProxyController extends Controller
                 'language' => 'nullable|string',
             ]);
 
-            // Decode base64 audio
-            $audioData = base64_decode(preg_replace('#^data:audio/\w+;base64,#i', '', $request->input('audio')));
+            // Decode base64 audio and clean the string
+            $audioData = preg_replace('#^data:audio/\w+;base64,#i', '', $request->input('audio'));
+            $audioData = str_replace(' ', '+', $audioData);
+            $audioData = base64_decode($audioData);
 
-            // Create temporary file
-            $tempFile = tempnam(sys_get_temp_dir(), 'audio_');
-            file_put_contents($tempFile, $audioData);
+            if (!$audioData) {
+                throw new \Exception('Invalid audio data');
+            }
+
+            // Create temporary file with .mp3 extension
+            $tempFile = tempnam(sys_get_temp_dir(), 'audio_') . '.mp3';
+            if (!file_put_contents($tempFile, $audioData)) {
+                throw new \Exception('Failed to save audio file');
+            }
 
             try {
                 // Transcribe audio
@@ -130,6 +137,10 @@ class OpenAIProxyController extends Controller
                 }
             }
         } catch (\Exception $e) {
+            \Log::error('Transcription error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json(['error' => $e->getMessage()], $e->getCode() ?: 500);
         }
     }
