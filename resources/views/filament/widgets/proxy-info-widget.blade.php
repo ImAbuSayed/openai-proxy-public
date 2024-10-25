@@ -1,20 +1,22 @@
-<x-filament-widgets::widget>
-    <x-filament::section>
-        <div class="flex items-center justify-between">
-            <span class="text-sm font-medium">Proxy URL</span>
-            <x-filament::button
-                x-data=""
-                x-on:click="
-                    window.navigator.clipboard.writeText('{{ App\Filament\Resources\ApiKeyResource::$proxyUrl }}');
-                    $dispatch('notify', { message: 'Copied to clipboard' })
-                "
-                size="sm"
-            >
-                Copy
-            </x-filament::button>
+<x-filament::widget>
+    <x-filament::card>
+        <div class="px-4 py-2">
+            <h3 class="text-lg font-medium">API Endpoints</h3>
+            <div class="mt-4 space-y-4">
+                @foreach($this->getEndpoints() as $name => $url)
+                    <div class="flex flex-col space-y-2">
+                        <span class="text-sm font-medium text-gray-500">{{ $name }}:</span>
+                        <div class="flex items-center space-x-2">
+                            <pre class="flex-1 p-2 rounded text-sm">{{ $url }}</pre>
+                        </div>
+                    </div>
+                @endforeach
+                <h4 class="text-sm text-start font-medium text-gray-500">Required Headers:</h4>
+                <div class="text-start">
+                        X-API-Key: your_api_key_here and 
+                        Content-Type: application/json
+                </div>
+            </div>
         </div>
-        <div class="mt-2 text-sm">
-            {{ App\Filament\Resources\ApiKeyResource::$proxyUrl }}
-        </div>
-    </x-filament::section>
-</x-filament-widgets::widget>
+    </x-filament::card>
+</x-filament::widget>

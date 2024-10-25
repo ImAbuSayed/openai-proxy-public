@@ -13,4 +13,14 @@ class ProxyInfoWidget extends Widget
     {
         return true;
     }
+
+    public function getEndpoints(): array
+    {
+        $baseUrl = config('app.url');
+        return [
+            'Chat Endpoint' => $baseUrl . '/api/openai-proxy/chat',
+            'Speech (TTS) Endpoint' => $baseUrl . '/api/openai-proxy/speech',
+            'Transcription (Whisper) Endpoint' => $baseUrl . '/api/openai-proxy/transcription',
+        ];
+    }
 }
